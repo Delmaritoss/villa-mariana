@@ -139,7 +139,7 @@
     });
   }
 
-  /* ------------------------------------------------------------ the window (hero and close)
+  /* ------------------------------------------------------------ the window (close)
      The wall is one layer with a hole; its transform origin is the centre of
      the window. Going through: it scales geometrically (a constant-speed
      dolly) until the hole is larger than the screen, while it slides so the
@@ -160,50 +160,109 @@
   }
 
   /* ------------------------------------------------------------ 1 · hero --
-     Pin progress p:
-       0.00 – 0.42  the shutters swing out from ajar (7°) to flat on the wall (172°)
-       0.05 – 0.25  the sign, the line and the button leave
-       0.26 – 0.86  through the window
-       0.76 – 0.94  "This is the view from the window." rises over the pool  */
+     "1877" is cut out of a stucco wall (an SVG whose user units are the
+     stage's pixels at rest); the film runs behind it, inside the numerals.
+     Going in: the viewBox shrinks geometrically toward the middle of the stem
+     of the "1" (the centre of the largest circle that fits in it, from
+     hero.py) until the screen sits inside that circle, so the wall is redrawn
+     sharp at every size. The film scales down a little the other way, and the
+     name above, nearer to the eye, rises away faster. Pin progress p:
+       0.04 – 0.22  the name, the line and the button rise and leave
+       0.06 – 0.80  into the "1"
+       0.78 – 0.94  "A pool above the bay." rises over the film              */
   var hero = $('[data-hero]');
   var hStage = hero && $('.hero__stage', hero);
   var hWall = hero && $('[data-hero-wall]', hero);
-  var hWin = hero && $('[data-win]', hero);
   var hView = hero && $('[data-hero-view]', hero);
   var hSign = hero && $('[data-hero-sign]', hero);
+  var hName = hSign && $('.sign', hSign);
   var hShade = hero && $('[data-hero-shade]', hero);
   var hSecond = hero && $('[data-hero-second]', hero);
-  var hShutters = hero ? $$('[data-shutter]', hero) : [];
+  var hNum = hWall ? JSON.parse(hWall.getAttribute('data-num')) : null;
   var hGeo = null, hLast = -1;
+
+  // Set the numerals for this screen: one row on a wide screen, 18 over 77 on
+  // a phone. Returns the zoom target in stage pixels.
+  function layoutHero() {
+    var W = hStage.clientWidth, H = hStage.clientHeight;
+    var phone = W / H < 0.75 || W < 700;
+    var G = hNum.glyphs, tr = hNum.track;
+    var rows = phone ? [[0, 1], [2, 3]] : [[0, 1, 2, 3]];
+    var capH = 1455, gapY = 220;
+    // each row's width in font units, from the first glyph's ink to the last one's
+    var widths = rows.map(function (row) {
+      var x = 0, last = 0;
+      row.forEach(function (i, n) { if (n) x += G[row[n - 1]].adv + tr; last = x + G[i].box[0] + G[i].box[2]; });
+      return last - G[row[0]].box[0];
+    });
+    var maxW = Math.max.apply(null, widths);
+    var k = phone ? Math.min(W * 0.8 / maxW, H * 0.5 / (capH * 2 + gapY)) : Math.min(W * 0.86 / maxW, H * 0.5 / capH);
+    var blockH = (rows.length * capH + (rows.length - 1) * gapY) * k;
+    var top = phone ? H * 0.5 - blockH / 2 + H * 0.02 : H * 0.88 - blockH;
+    var target = null;
+    rows.forEach(function (row, r) {
+      var x = (W - widths[r] * k) / 2 - G[row[0]].box[0] * k;
+      var base = top + (capH + r * (capH + gapY)) * k;
+      row.forEach(function (i, n) {
+        if (n) x += (G[row[n - 1]].adv + tr) * k;
+        $('#h-d' + i, hWall).setAttribute('transform', 'translate(' + x.toFixed(2) + ' ' + base.toFixed(2) + ') scale(' + k.toFixed(5) + ')');
+        if (i === 0) target = { x: x + hNum.target[0] * k, y: base + hNum.target[1] * k, r: hNum.r * k };
+      });
+    });
+    $$('.h-full', hWall).forEach(function (rc) { rc.setAttribute('width', W); rc.setAttribute('height', H); });
+    var rim = $('.h-rim', hWall), sh = $('.h-shadow', hWall);
+    rim.setAttribute('stroke-width', Math.max(1.2, k * 16).toFixed(2));
+    sh.setAttribute('stroke-width', (k * 90).toFixed(2));
+    sh.setAttribute('x', (k * 34).toFixed(2));
+    sh.setAttribute('y', (k * 46).toFixed(2));
+    // zoom until the half-diagonal of the screen fits in 0.9 of the circle
+    var Z = Math.hypot(W, H) / 2 / (0.9 * target.r);
+    hView.style.transformOrigin = (target.x / W * 100).toFixed(2) + '% ' + (target.y / H * 100).toFixed(2) + '%';
+    return { W: W, H: H, T: target, Z: Z };
+  }
 
   function drawHero() {
     var o = progress(hero), p = o.p;
-    if (bar) bar.classList.toggle('is-over', o.r.top > -innerHeight * 0.5 && p < 0.5 && !doc.body.classList.contains('menu-open'));
+    if (bar) bar.classList.toggle('is-over', o.r.top > -innerHeight * 0.5 && p < 0.45 && !doc.body.classList.contains('menu-open'));
     if (!near(o.r)) return;
     if (Math.abs(p - hLast) < 0.0004) return;
     hLast = p;
-    if (!hGeo) hGeo = windowGeo(hStage, hWin);
-    var rise = smooth((p - 0.76) / 0.18);
+    if (!hGeo) hGeo = layoutHero();
+    var g = hGeo;
+    var rise = smooth((p - 0.78) / 0.16);
     hSecond.style.opacity = rise.toFixed(3);
     hSecond.style.transform = 'translate3d(0,' + ((1 - rise) * 22).toFixed(1) + 'px,0)';
     hShade.style.opacity = rise.toFixed(3);
     if (reduce) {
-      // no movement: the shutters stay shut and the wall dissolves to the view
+      // no movement: the wall dissolves and the film is there
       var f = smooth((p - 0.1) / 0.4);
       hWall.style.opacity = (1 - f).toFixed(3);
       hWall.style.visibility = f > 0.99 ? 'hidden' : '';
+      hSign.style.opacity = (1 - f).toFixed(3);
+      hSign.style.visibility = f > 0.99 ? 'hidden' : '';
       hero.classList.toggle('is-through', f > 0.9);
       return;
     }
-    var open = smooth(p / 0.42);
-    var a = 7 + 165 * open;
-    hShutters.forEach(function (s) { s.style.setProperty('--a', a.toFixed(2) + 'deg'); });
-    var leave = smooth((p - 0.05) / 0.2);
+    // the name is nearer than the wall and rises away; the line and the
+    // button only fade, so on a phone they never cross the numerals
+    var leave = smooth((p - 0.04) / 0.18);
     hSign.style.opacity = (1 - leave).toFixed(3);
     hSign.style.visibility = leave > 0.99 ? 'hidden' : '';
-    var e = smooth((p - 0.26) / 0.6);
-    through(hWall, hView, hGeo, e);
+    hName.style.transform = 'translate3d(0,' + (-leave * g.H * 0.07).toFixed(1) + 'px,0)';
+    var e = smooth((p - 0.06) / 0.74);
+    var s = Math.pow(g.Z, e);
+    var vw = g.W / s, vh = g.H / s;
+    var cx = g.T.x + (g.W / 2 - g.T.x) * (1 - e) / s;
+    var cy = g.T.y + (g.H / 2 - g.T.y) * (1 - e) / s;
+    hWall.setAttribute('viewBox', (cx - vw / 2).toFixed(3) + ' ' + (cy - vh / 2).toFixed(3) + ' ' + vw.toFixed(3) + ' ' + vh.toFixed(3));
+    hWall.style.visibility = e > 0.995 ? 'hidden' : '';
+    hView.style.transform = 'scale(' + (1.14 - 0.14 * e).toFixed(4) + ')';
     hero.classList.toggle('is-through', e > 0.9);
+  }
+  if (hero) {
+    // lay the numerals out at once (and again when the font metrics settle)
+    hGeo = layoutHero();
+    addEventListener('resize', function () { hGeo = null; hLast = -1; });
   }
 
   // The film: one 9 s loop made from the real golden-hour pool photo (camera

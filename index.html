@@ -10,7 +10,7 @@
 <link rel="preload" href="fonts/instrument-sans-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/faces.css?v=7323df27">
 <link rel="stylesheet" href="scrollcraft.css?v=4cabdc0b">
-<link rel="stylesheet" href="css/site.css?v=c18decb1">
+<link rel="stylesheet" href="css/site.css?v=b031b638">
 
 <title data-i18n="meta.home.title">Villa Mariana 1877 · kuća s bazenom i vrtom iznad Opatije</title>
 <meta name="description" content="Kuća iz 1877. u Bregima iznad Opatije: 320 m², četiri spavaće sobe, bazen 4 × 8 m, whirlpool i ograđeni vrt od 1500 m² s pogledom na Kvarner. Do 8 gostiju, ljubimci dobrodošli." data-i18n-attr="content:meta.home.desc">
@@ -60,8 +60,8 @@
 
 <main id="main">
 
-  <!-- 1 · the shutters: green louvres on the stucco wall open onto the pool and the bay; you go through the window -->
-  <section class="hero" id="skure" data-sc-act="pin" data-sc-span="2.2" data-hero>
+  <!-- 1 · the year on the wall: "1877" cut into the stucco like the gilded letters of the sign, the pool moving inside the numerals; scroll flies into the "1" and the pool fills the screen -->
+  <section class="hero" id="pocetak" data-sc-act="pin" data-sc-span="2.2" data-hero>
     <div class="sc-stage hero__stage">
       <div class="hero__view" data-hero-view>
         <picture>
@@ -72,22 +72,29 @@
       </div>
       <div class="hero__shade" aria-hidden="true" data-hero-shade></div>
 
-      <div class="wall" data-hero-wall>
-        <div class="wall__w wall__w--t"></div><div class="wall__w wall__w--b"></div><div class="wall__w wall__w--l"></div><div class="wall__w wall__w--r"></div>
-        <div class="win" data-win>
-          <div class="win__frame" aria-hidden="true"></div>
-          <div class="win__sill" aria-hidden="true"></div>
-          <div class="shutter shutter--l" data-shutter="l" aria-hidden="true"><span class="shutter__face"></span><span class="shutter__face shutter__face--back"></span></div>
-          <div class="shutter shutter--r" data-shutter="r" aria-hidden="true"><span class="shutter__face"></span><span class="shutter__face shutter__face--back"></span></div>
-        </div>
-        <div class="hero__sign" data-hero-sign>
-          <h1 class="sign"><span class="sign__v">Villa</span><span class="sign__n">Mariana</span><span class="sign__y">1877</span></h1>
+      <svg class="hero__wall" data-hero-wall data-num="{&quot;glyphs&quot;: [{&quot;adv&quot;: 800, &quot;box&quot;: [31, -1455, 744, 1455]}, {&quot;adv&quot;: 1149, &quot;box&quot;: [49, -1420, 1065, 1440]}, {&quot;adv&quot;: 1034, &quot;box&quot;: [67.7, -1400, 997.3, 1428]}, {&quot;adv&quot;: 1034, &quot;box&quot;: [67.7, -1400, 997.3, 1428]}], &quot;track&quot;: 60.0, &quot;target&quot;: [405.0, -875.0], &quot;r&quot;: 198.0, &quot;upm&quot;: 2000}" aria-hidden="true" focusable="false" preserveAspectRatio="none" viewBox="0 0 1440 900">
+        <defs>
+          <pattern id="h-stucco" patternUnits="userSpaceOnUse" width="256" height="256"><image href="img/hero/stucco.webp" width="256" height="256"/></pattern>
+          <radialGradient id="h-sun" cx="0.16" cy="0" r="1.05"><stop offset="0" stop-color="#FFF6D6" stop-opacity="0.55"/><stop offset="0.6" stop-color="#FFF6D6" stop-opacity="0"/></radialGradient>
+          <g id="h-num"><path id="h-d0" d="M63 -1329 175 -1328Q192 -1328 201.0 -1318.0Q210 -1308 210 -1286V-122Q210 -82 189.5 -63.5Q169 -45 136 -38L48 -20Q31 -16 31 -11Q31 -6 35.5 -3.0Q40 0 46 0H760Q767 0 771.0 -3.0Q775 -6 775 -10Q775 -16 760 -19L664 -38Q635 -44 618.0 -64.5Q601 -85 601 -122V-1438Q601 -1455 589 -1455Q583 -1455 579.0 -1451.5Q575 -1448 570 -1443Q524 -1389 434.5 -1370.0Q345 -1351 178 -1351L62 -1350Q55 -1350 51.0 -1347.5Q47 -1345 47 -1340Q47 -1335 50.5 -1332.0Q54 -1329 63 -1329Z"/><path id="h-d1" d="M552 20Q388 20 277.0 -20.0Q166 -60 110.0 -132.5Q54 -205 54 -300Q54 -380 90.5 -443.5Q127 -507 213 -553Q258 -577 321 -595Q224 -653 164 -719Q49 -845 49 -1005Q49 -1124 112.5 -1218.0Q176 -1312 295.5 -1366.0Q415 -1420 585 -1420Q761 -1420 877.5 -1377.5Q994 -1335 1051.0 -1253.5Q1108 -1172 1108 -1056Q1108 -960 1060.0 -882.0Q1012 -804 922 -753Q889 -734 850 -720Q958 -666 1017 -603Q1114 -498 1114 -385Q1114 -262 1046.5 -171.0Q979 -80 853.0 -30.0Q727 20 552 20ZM735 -770Q735 -770 735 -770Q751 -819 760.0 -881.0Q769 -943 769 -1009Q769 -1145 745.5 -1233.5Q722 -1322 678.0 -1365.0Q634 -1408 574 -1408Q520 -1408 480.0 -1379.0Q440 -1350 418.0 -1297.5Q396 -1245 396 -1177Q396 -1084 425.5 -1009.5Q455 -935 518.0 -879.5Q581 -824 681 -789Q709 -780 735 -770ZM424 -541Q417 -520 412 -496Q394 -423 394 -353Q394 -162 444.0 -79.0Q494 4 573 4Q662 4 705.5 -56.0Q749 -116 749 -222Q749 -286 726.5 -337.0Q704 -388 654.5 -428.5Q605 -469 526 -498Q472 -519 424 -541Z"/><path id="h-d2" d="M834 -1098H180Q165 -1098 154.5 -1091.5Q144 -1085 137 -1064L91 -914Q89 -908 85.0 -904.5Q81 -901 76 -901Q72 -901 69.5 -905.0Q67 -909 68 -916L127 -1371Q129 -1384 135.0 -1392.0Q141 -1400 153 -1400H1046Q1055 -1400 1060.0 -1395.5Q1065 -1391 1065 -1384Q1065 -1376 1061.0 -1366.0Q1057 -1356 1047 -1343L737 -919Q698 -868 668.0 -822.5Q638 -777 617.5 -736.0Q597 -695 586.5 -655.0Q576 -615 576 -574Q576 -510 595.5 -460.5Q615 -411 640.0 -367.5Q665 -324 684.5 -278.5Q704 -233 704 -175Q704 -93 646.0 -32.5Q588 28 485 28Q387 28 333.5 -31.5Q280 -91 280 -194Q280 -252 298.5 -317.5Q317 -383 354.0 -453.0Q391 -523 447 -595Z"/><path id="h-d3" d="M834 -1098H180Q165 -1098 154.5 -1091.5Q144 -1085 137 -1064L91 -914Q89 -908 85.0 -904.5Q81 -901 76 -901Q72 -901 69.5 -905.0Q67 -909 68 -916L127 -1371Q129 -1384 135.0 -1392.0Q141 -1400 153 -1400H1046Q1055 -1400 1060.0 -1395.5Q1065 -1391 1065 -1384Q1065 -1376 1061.0 -1366.0Q1057 -1356 1047 -1343L737 -919Q698 -868 668.0 -822.5Q638 -777 617.5 -736.0Q597 -695 586.5 -655.0Q576 -615 576 -574Q576 -510 595.5 -460.5Q615 -411 640.0 -367.5Q665 -324 684.5 -278.5Q704 -233 704 -175Q704 -93 646.0 -32.5Q588 28 485 28Q387 28 333.5 -31.5Q280 -91 280 -194Q280 -252 298.5 -317.5Q317 -383 354.0 -453.0Q391 -523 447 -595Z"/></g>
+
+          <mask id="h-cut" maskUnits="userSpaceOnUse" x="-10" y="-10" width="99999" height="99999"><rect class="h-full" fill="#fff"/><use href="#h-num" fill="#000"/></mask>
+          <clipPath id="h-in"><use href="#h-num"/></clipPath>
+        </defs>
+        <rect class="h-full" fill="url(#h-stucco)" mask="url(#h-cut)"/>
+        <rect class="h-full" fill="url(#h-sun)" mask="url(#h-cut)"/>
+        <g clip-path="url(#h-in)"><use class="h-shadow" href="#h-num" fill="none"/></g>
+        <use class="h-rim" href="#h-num" fill="none"/>
+      </svg>
+      <div class="hero__sign" data-hero-sign>
+        <h1 class="sign"><span class="sign__v">Villa</span><span class="sign__n">Mariana</span><span class="vh"> 1877</span></h1>
+        <div class="hero__aside">
           <p class="hero__line" data-i18n="hero.line">Kuća iz 1877. u Bregima iznad Opatije, s bazenom, vrtom od 1500 m² i Kvarnerom pod prozorom.</p>
           <a class="btn" href="rezervacije.html" data-i18n="cta.send">Pošaljite upit</a>
         </div>
       </div>
 
-      <p class="hero__second" data-hero-second><span data-i18n="hero.second">Pogled s prozora.</span><small data-i18n="hero.secondS">Bazen, ležaljke i zaljev od Opatije do Rijeke.</small></p>
+      <p class="hero__second" data-hero-second><span data-i18n="hero.second">Bazen nad zaljevom.</span><small data-i18n="hero.secondS">Ležaljke, whirlpool i Kvarner od Opatije do Rijeke.</small></p>
       <button class="film-pause" type="button" aria-pressed="false" data-hero-pause hidden><span class="vh" data-i18n="ui.pause">Zaustavi film</span><svg viewBox="0 0 20 20" aria-hidden="true"><path class="i-pause" d="M6 4h3v12H6zM11 4h3v12h-3z"/><path class="i-play" d="M6 4l10 6-10 6z"/></svg></button>
     </div>
   </section>
@@ -342,8 +349,8 @@
   </div>
 </footer>
 <script src="scrollcraft.js?v=950157d6"></script>
-<script src="js/i18n.js?v=7d1a6ae7"></script>
-<script src="js/site.js?v=deb5f283"></script>
+<script src="js/i18n.js?v=fa45bf59"></script>
+<script src="js/site.js?v=698b4805"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
