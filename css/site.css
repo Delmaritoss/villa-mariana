@@ -590,3 +590,24 @@ p { margin: 0; }
   /* the postcard is shown full size here, so its caption needs a ground */
   .peak__copy--a { padding: var(--sc-5) var(--sc-6); background: rgb(243 234 219 / 0.94); border-radius: 3px; }
 }
+
+/* ------------------------------------------------------------ phones and tablets
+   (site.js sets .is-lite on coarse pointers and narrow screens). The same
+   acts, drawn so that scrolling only moves and fades layers the GPU already
+   holds: the hero wall as pre-drawn canvases, the peak without moving masks,
+   the close's wall and view as layers, no blur behind the bar. */
+.hero__levels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.hero__levels canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.is-lite .bar { -webkit-backdrop-filter: none; backdrop-filter: none; background: color-mix(in oklab, var(--cream) 97%, transparent); }
+.is-lite .bar.is-over { background: transparent; }
+.is-lite .hero__view, .is-lite .hero__sign .sign { will-change: transform; }
+.is-lite .peak__card, .is-lite .peak__garden, .is-lite .peak__rez { will-change: transform; }
+.is-lite .peak__skyw, .is-lite .peak__postw { -webkit-mask-image: none; mask-image: none; will-change: opacity; }
+.is-lite .peak__paper, .is-lite .peak__marks { will-change: opacity; }
+.is-lite .close__view, .is-lite .wall--close { will-change: transform; }
+/* everything that fades or moves on scroll is its own layer, so a frame
+   only recomposites; nothing around it is repainted */
+.is-lite .peak__stage, .is-lite .hero__stage, .is-lite .close__stage { will-change: transform; }
+.is-lite .peak__copy, .is-lite .peak__scrim, .is-lite .peak__tags li,
+.is-lite .hero__sign, .is-lite .hero__second, .is-lite .hero__shade,
+.is-lite .close__body { will-change: opacity, transform; }

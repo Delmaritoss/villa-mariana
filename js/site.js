@@ -10,20 +10,26 @@
   var doc = document;
   var root = doc.documentElement;
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Phones and tablets get the same story drawn more cheaply: the hero wall
+  // from pre-drawn canvases, the peak with dissolves and layers instead of
+  // moving masks, no blur behind the bar. The desktop keeps the live SVG.
+  var lite = matchMedia('(pointer: coarse)').matches || innerWidth < 760;
   var EMAIL = (doc.querySelector('meta[name="vm-email"]') || {}).content || '';
   var DICT = window.VM_I18N || {};
   var LANGS = ['hr', 'en', 'de', 'it'];
   var lang = 'hr';
 
   root.classList.add('js');
+  if (lite) root.classList.add('is-lite');
 
   function $(s, c) { return (c || doc).querySelector(s); }
   function $$(s, c) { return Array.prototype.slice.call((c || doc).querySelectorAll(s)); }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function smooth(x) { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  var rects = null;
   function progress(el) {
-    var r = el.getBoundingClientRect();
+    var r = (rects && rects.get(el)) || el.getBoundingClientRect();
     var travel = r.height - innerHeight;
     return { r: r, p: travel > 1 ? clamp(-r.top / travel, 0, 1) : 0 };
   }
@@ -199,13 +205,14 @@
     var k = phone ? Math.min(W * 0.8 / maxW, H * 0.5 / (capH * 2 + gapY)) : Math.min(W * 0.86 / maxW, H * 0.5 / capH);
     var blockH = (rows.length * capH + (rows.length - 1) * gapY) * k;
     var top = phone ? H * 0.5 - blockH / 2 + H * 0.02 : H * 0.88 - blockH;
-    var target = null;
+    var target = null, place = [];
     rows.forEach(function (row, r) {
       var x = (W - widths[r] * k) / 2 - G[row[0]].box[0] * k;
       var base = top + (capH + r * (capH + gapY)) * k;
       row.forEach(function (i, n) {
         if (n) x += (G[row[n - 1]].adv + tr) * k;
         $('#h-d' + i, hWall).setAttribute('transform', 'translate(' + x.toFixed(2) + ' ' + base.toFixed(2) + ') scale(' + k.toFixed(5) + ')');
+        place.push({ i: i, x: x, y: base });
         if (i === 0) target = { x: x + hNum.target[0] * k, y: base + hNum.target[1] * k, r: hNum.r * k };
       });
     });
@@ -218,7 +225,105 @@
     // zoom until the half-diagonal of the screen fits in 0.9 of the circle
     var Z = Math.hypot(W, H) / 2 / (0.9 * target.r);
     hView.style.transformOrigin = (target.x / W * 100).toFixed(2) + '% ' + (target.y / H * 100).toFixed(2) + '%';
-    return { W: W, H: H, T: target, Z: Z };
+    return { W: W, H: H, T: target, Z: Z, k: k, place: place, rim: Math.max(1.2, k * 16), sh: k * 90, shx: k * 34, shy: k * 46 };
+  }
+
+  /* The light path. Redrawing a masked SVG at full resolution on every frame
+     is what a phone cannot do (Safari draws SVG masks on the CPU). So the
+     wall is drawn once into a few canvases, each at its own zoom (1.85x
+     apart), with Canvas 2D: stucco pattern, the numerals cut out, the shadow
+     inside the cut, the gilt rim. Scrolling only moves and scales the canvas
+     whose zoom is just below the current one: compositor work, nothing is
+     repainted. Each canvas is at most 1.85x enlarged before the next, sharper
+     one takes over. */
+  var hLevels = null, hBuild = 0, hStucco = null, hPaths = null;
+  // where the camera is at zoom s: the top-left corner of the view, in wall units
+  function camera(g, s) {
+    var e = Math.log(s) / Math.log(g.Z);
+    var cx = g.T.x + (g.W / 2 - g.T.x) * (1 - e) / s;
+    var cy = g.T.y + (g.H / 2 - g.T.y) * (1 - e) / s;
+    return { x: cx - g.W / 2 / s, y: cy - g.H / 2 / s };
+  }
+  function drawLevel(g, L) {
+    var dpr = Math.min(devicePixelRatio || 1, 2);
+    var cv = doc.createElement('canvas');
+    cv.width = Math.round(g.W * dpr); cv.height = Math.round(g.H * dpr);
+    cv.style.width = g.W + 'px'; cv.style.height = g.H + 'px';
+    var c = cv.getContext('2d');
+    var m = dpr * L.z;
+    c.setTransform(m, 0, 0, m, -L.tl.x * m, -L.tl.y * m);
+    c.fillStyle = c.createPattern(hStucco, 'repeat');
+    c.fillRect(L.tl.x, L.tl.y, g.W / L.z, g.H / L.z);
+    var sun = c.createRadialGradient(g.W * 0.16, 0, 0, g.W * 0.16, 0, Math.max(g.W, g.H) * 1.05);
+    sun.addColorStop(0, 'rgba(255,246,214,0.55)'); sun.addColorStop(0.6, 'rgba(255,246,214,0)');
+    c.fillStyle = sun;
+    c.fillRect(L.tl.x, L.tl.y, g.W / L.z, g.H / L.z);
+    // one numeral at a time in its own transform (no Path2D.addPath, which
+    // older iOS lacks): cut it out, shade inside the cut, gild the edge
+    g.place.forEach(function (pl) {
+      var P = hPaths[pl.i];
+      c.save();
+      c.transform(g.k, 0, 0, g.k, pl.x, pl.y);
+      c.globalCompositeOperation = 'destination-out';
+      c.fillStyle = '#000';
+      c.fill(P);
+      c.globalCompositeOperation = 'source-over';
+      c.save();
+      c.clip(P);
+      c.translate(g.shx / g.k, g.shy / g.k);
+      c.lineWidth = g.sh / g.k; c.strokeStyle = 'rgba(72,46,10,0.5)';
+      c.stroke(P);
+      c.restore();
+      c.lineWidth = g.rim / g.k; c.strokeStyle = '#C4943A';
+      c.stroke(P);
+      c.restore();
+    });
+    return cv;
+  }
+  function buildLevels(g) {
+    var job = ++hBuild;
+    var box = $('[data-hero-levels]', hStage);
+    if (!box) {
+      box = doc.createElement('div');
+      box.className = 'hero__levels'; box.setAttribute('aria-hidden', 'true'); box.setAttribute('data-hero-levels', '');
+      hWall.parentNode.insertBefore(box, hWall.nextSibling);
+    }
+    var zs = [];
+    for (var z = 1; z < g.Z; z *= 1.85) zs.push(z);
+    var lv = { W: g.W, H: g.H, box: box, items: zs.map(function (z) { return { z: z, tl: camera(g, z), cv: null }; }), ready: 0 };
+    var start = function () {
+      if (!hPaths) hPaths = $$('#h-num path', hWall).map(function (pa) { return new Path2D(pa.getAttribute('d')); });
+      var n = 0;
+      var next = function () {
+        if (job !== hBuild) return;
+        var L = lv.items[n];
+        L.cv = drawLevel(g, L);
+        L.cv.style.visibility = 'hidden';
+        if (n === 0) { box.innerHTML = ''; hLevels = lv; }
+        box.appendChild(L.cv);
+        lv.ready = ++n;
+        if (n === 1) { hWall.style.display = 'none'; hLast = -1; request(); }
+        if (n < lv.items.length) setTimeout(next, 16);
+      };
+      next();
+    };
+    if (hStucco && hStucco.complete) start();
+    else {
+      hStucco = hStucco || new Image();
+      hStucco.onload = start;
+      if (!hStucco.src) hStucco.src = $('pattern image', hWall).getAttribute('href');
+    }
+  }
+  function showLevels(g, s, e) {
+    var lv = hLevels, tl = camera(g, s), on = -1;
+    for (var i = 0; i < lv.ready; i++) if (lv.items[i].z <= s * 1.0001) on = i;
+    if (on < 0) on = 0;
+    for (var j = 0; j < lv.ready; j++) {
+      var L = lv.items[j];
+      if (j !== on || e > 0.995) { if (L.cv.style.visibility !== 'hidden') L.cv.style.visibility = 'hidden'; continue; }
+      L.cv.style.visibility = '';
+      L.cv.style.transform = 'translate3d(' + ((L.tl.x - tl.x) * s).toFixed(2) + 'px,' + ((L.tl.y - tl.y) * s).toFixed(2) + 'px,0) scale(' + (s / L.z).toFixed(5) + ')';
+    }
   }
 
   function drawHero() {
@@ -227,7 +332,14 @@
     if (!near(o.r)) return;
     if (Math.abs(p - hLast) < 0.0004) return;
     hLast = p;
-    if (!hGeo) hGeo = layoutHero();
+    if (!hGeo) {
+      hGeo = layoutHero();
+      // a new size (not just the phone's toolbar moving) needs new canvases
+      if (lite && !reduce && (!hLevels || hLevels.W !== hGeo.W || hLevels.H !== hGeo.H)) {
+        if (hLevels) { hLevels.box.innerHTML = ''; hLevels = null; hWall.style.display = ''; }
+        buildLevels(hGeo);
+      }
+    }
     var g = hGeo;
     var rise = smooth((p - 0.78) / 0.16);
     hSecond.style.opacity = rise.toFixed(3);
@@ -254,14 +366,18 @@
     var vw = g.W / s, vh = g.H / s;
     var cx = g.T.x + (g.W / 2 - g.T.x) * (1 - e) / s;
     var cy = g.T.y + (g.H / 2 - g.T.y) * (1 - e) / s;
-    hWall.setAttribute('viewBox', (cx - vw / 2).toFixed(3) + ' ' + (cy - vh / 2).toFixed(3) + ' ' + vw.toFixed(3) + ' ' + vh.toFixed(3));
-    hWall.style.visibility = e > 0.995 ? 'hidden' : '';
+    if (hLevels) showLevels(g, s, e);
+    else {
+      hWall.setAttribute('viewBox', (cx - vw / 2).toFixed(3) + ' ' + (cy - vh / 2).toFixed(3) + ' ' + vw.toFixed(3) + ' ' + vh.toFixed(3));
+      hWall.style.visibility = e > 0.995 ? 'hidden' : '';
+    }
     hView.style.transform = 'scale(' + (1.14 - 0.14 * e).toFixed(4) + ')';
     hero.classList.toggle('is-through', e > 0.9);
   }
   if (hero) {
-    // lay the numerals out at once (and again when the font metrics settle)
+    // lay the numerals out at once; on the light path draw the canvases
     hGeo = layoutHero();
+    if (lite && !reduce) buildLevels(hGeo);
     addEventListener('resize', function () { hGeo = null; hLast = -1; });
   }
 
@@ -392,14 +508,24 @@
     var paper = 1 - smooth((p - 0.12) / 0.12);
     pPaper.style.opacity = paper.toFixed(3);
     pMarks.style.opacity = (1 - smooth((p - 0.08) / 0.1)).toFixed(3);
-    var d = smooth((p - 0.08) / 0.22) * 1.3 * g.Fw;
-    pPostW.style.transform = 'translate3d(' + d.toFixed(1) + 'px,0,0)';
-    pPost.style.transform = 'translate3d(' + (-d).toFixed(1) + 'px,0,0)';
-    pPostW.style.visibility = d >= 1.3 * g.Fw - 1 ? 'hidden' : '';
-    var q = smooth((p - 0.3) / 0.22) * 1.3 * g.Fh;
-    pSky.style.transform = 'translate3d(0,' + q.toFixed(1) + 'px,0)';
-    pSkyImg.style.transform = 'translate3d(0,' + (-q).toFixed(1) + 'px,0)';
-    pSky.style.visibility = q >= 1.3 * g.Fh - 1 ? 'hidden' : '';
+    if (lite) {
+      // a moving feathered mask repaints the whole layer on every frame; on a
+      // phone the colour and the sky arrive as dissolves of fixed layers
+      var dl = smooth((p - 0.08) / 0.22), ql = smooth((p - 0.3) / 0.22);
+      pPostW.style.opacity = (1 - dl).toFixed(3);
+      pPostW.style.visibility = dl > 0.995 ? 'hidden' : '';
+      pSky.style.opacity = (1 - ql).toFixed(3);
+      pSky.style.visibility = ql > 0.995 ? 'hidden' : '';
+    } else {
+      var d = smooth((p - 0.08) / 0.22) * 1.3 * g.Fw;
+      pPostW.style.transform = 'translate3d(' + d.toFixed(1) + 'px,0,0)';
+      pPost.style.transform = 'translate3d(' + (-d).toFixed(1) + 'px,0,0)';
+      pPostW.style.visibility = d >= 1.3 * g.Fw - 1 ? 'hidden' : '';
+      var q = smooth((p - 0.3) / 0.22) * 1.3 * g.Fh;
+      pSky.style.transform = 'translate3d(0,' + q.toFixed(1) + 'px,0)';
+      pSkyImg.style.transform = 'translate3d(0,' + (-q).toFixed(1) + 'px,0)';
+      pSky.style.visibility = q >= 1.3 * g.Fh - 1 ? 'hidden' : '';
+    }
     var z = smooth((p - 0.48) / 0.36);
     pRez.style.transform = 'translate3d(0,' + (z * 1.04 * g.Fh).toFixed(1) + 'px,0) scale(' + (1 + 0.16 * z).toFixed(4) + ')';
     pRez.style.visibility = z > 0.999 ? 'hidden' : '';
@@ -478,6 +604,10 @@
   var ticking = false;
   function frame() {
     ticking = false;
+    rects = new Map();
+    if (hero) rects.set(hero, hero.getBoundingClientRect());
+    if (peak) rects.set(peak, peak.getBoundingClientRect());
+    if (close) rects.set(close, close.getBoundingClientRect());
     if (hero) drawHero();
     else if (bar) bar.classList.remove('is-over');
     if (peak) drawPeak();
